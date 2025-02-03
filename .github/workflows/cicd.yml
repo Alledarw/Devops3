@@ -25,8 +25,11 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build --no-cache -t ghcr.io/${{ github.repository }}/web-server-nginx:latest .
+        docker build --no-cache -t ghcr.io/alledarw/devops3/web-server-nginx:latest .
+        # The repository name starts with an uppercase letter, which is not allowed in Docker image tags.
+        # Therefore, we need to manually specify the repository path in lowercase rather than using 
+        # `${{ github.repository }}`, which may include uppercase letters.
 
     - name: Push Docker image to GHCR
       run: |
-        docker push ghcr.io/${{ github.repository }}/web-server-nginx:latest
+        docker push ghcr.io/alledarw/devops3/web-server-nginx:latest
