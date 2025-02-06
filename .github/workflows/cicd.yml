@@ -2,11 +2,8 @@ name: Build and Push Docker Image to GHCR
 
 on:
   push:
-    branches:
-      - dev
-  pull_request:
-    branches:
-      - dev
+    tags:
+      - 'v*.*.*'  # Triggers workflow only when there is a semantic tag pushed
 
 jobs:
   build:
@@ -23,13 +20,19 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Extract version from tag
+      id: extract_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/} # Removes the refs/tag/ so we only get the version
+        echo "VERSION=$VERSION" >> $GITHUB_ENV 
+        echo "Extracted version: $VERSION"
+
     - name: Build Docker image
       run: |
-        docker build --no-cache -t ghcr.io/alledarw/devops3/web-server-nginx:latest .
-        # The repository name starts with an uppercase letter, which is not allowed in Docker image tags.
-        # Therefore, we need to manually specify the repository path in lowercase rather than using 
-        # `${{ github.repository }}`, which may include uppercase letters.
+        docker build --no-cache -t ghcr.io/alledarw/devops3/web-server-nginx:${{ env.VERSION }} .
+        echo "Built Docker image with version: ${{ env.VERSION }}"
 
     - name: Push Docker image to GHCR
       run: |
-        docker push ghcr.io/alledarw/devops3/web-server-nginx:latest
+        docker push ghcr.io/alledarw/devops3/web-server-nginx:${{ env.VERSION }}
+        echo "Pushed Docker image with version: ${{ env.VERSION }}"
