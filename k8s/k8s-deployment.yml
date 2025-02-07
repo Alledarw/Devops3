@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server-nginx
+  template:
+    metadata:
+      labels:
+        app: web-server-nginx
+    spec:
+      containers:
+        - name: web-server-nginx
+          image: ghcr.io/alledarw/devops3/web-server-nginx:v1.0.0 
+          ports:
+            - containerPort: 80
