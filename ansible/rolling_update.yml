@@ -1,0 +1,67 @@
+---
+- name: Rolling Update for Kubernetes Deployment
+  hosts: localhost
+  connection: local
+  vars:
+    image_version: v1.2.0 
+    new_image_version: v1.3.0  # Image version to update to (to try rollback, use a image version that's non existent)
+    ansible_python_interpreter: "/home/alledarw/myenv/bin/python" # Tell Ansible to use the Python interpreter from your virtual environment
+  tasks:
+    - name: Update Kubernetes Deployment to Latest Image
+      k8s:
+        state: present
+        namespace: default
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: web-server-nginx
+            namespace: default
+          spec:
+            replicas: 5
+            selector:
+              matchLabels:
+                app: web-server-nginx
+            template:
+              metadata:
+                labels:
+                  app: web-server-nginx
+                annotations:
+                  rollout_timestamp: "{{ ansible_date_time.iso8601 }}"
+              spec:
+                containers:
+                  - name: web-server-nginx
+                    image: "ghcr.io/alledarw/devops3/web-server-nginx:{{ new_image_version }}"
+                    ports:
+                      - containerPort: 80
+                    # imagePullSecrets: (Repo is public)
+                    #  - name: ghcr-secret
+
+    - name: Wait for Deployment Rollout
+      shell: |
+        kubectl rollout status deployment/web-server-nginx --timeout=180s
+      register: rollout_status
+      failed_when: rollout_status.rc != 0
+      ignore_errors: true
+
+    - name: Handle Rollback on Failure
+      when: rollout_status.rc != 0
+      block:
+        - name: Display Rollback Failure Message
+          debug:
+            msg: "Deployment failed to update to image '{{ new_image_version }}'."
+
+        - name: Perform Rollback to Previous Version
+          shell: kubectl rollout undo deployment/web-server-nginx
+
+        - name: Get Current Image After Rollback
+          shell: |
+            kubectl get deployment web-server-nginx -o jsonpath='{.spec.template.spec.containers[0].image}'
+          register: current_image
+          changed_when: false
+
+        - name: Display Friendly Message
+          debug:
+            msg: >
+              Deployment failed to update to image '{{ new_image_version }}'.
+              Rolled back to the previous working image '{{ current_image.stdout }}'.

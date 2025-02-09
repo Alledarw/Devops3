@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: web-server-nginx
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       app: web-server-nginx
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: web-server-nginx
-          image: ghcr.io/alledarw/devops3/web-server-nginx:v1.0.0 
+          image: ghcr.io/alledarw/devops3/web-server-nginx:v1.2.0 
           ports:
             - containerPort: 80
