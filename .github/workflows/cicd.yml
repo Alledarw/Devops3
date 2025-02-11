@@ -31,6 +31,13 @@ jobs:
       run: |
         docker build --no-cache -t ghcr.io/alledarw/devops3/web-server-nginx:${{ env.VERSION }} .
         echo "Built Docker image with version: ${{ env.VERSION }}"
+        
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-container -p 8080:80 ghcr.io/alledarw/devops3/web-server-nginx:${{ env.VERSION }}
+        sleep 10 # Give some time for the container to start
+        docker ps | grep test-container 
+        curl -I http://localhost:8080  
 
     - name: Push Docker image to GHCR
       run: |

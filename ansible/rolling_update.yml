@@ -3,9 +3,9 @@
   hosts: localhost
   connection: local
   vars:
-    image_version: v1.2.0 
-    new_image_version: v1.3.0  # Image version to update to (to try rollback, use a image version that's non existent)
-    ansible_python_interpreter: "/home/alledarw/myenv/bin/python" # Tell Ansible to use the Python interpreter from your virtual environment
+    new_image_version: v2.1.0  # Image version to update to (to try rollback, use a image version that's non existent)
+    ansible_python_interpreter: "{{ lookup('pipe', 'which python3') }}"  # If you're using a virtual environment (venv), replace current path with: "/path/to/venv/bin/python"
+
   tasks:
     - name: Update Kubernetes Deployment to Latest Image
       k8s:
@@ -36,6 +36,24 @@
                       - containerPort: 80
                     # imagePullSecrets: (Repo is public)
                     #  - name: ghcr-secret
+
+    - name: Check for Kubernetes Events
+      shell: kubectl get events --sort-by=.metadata.creationTimestamp
+      register: k8s_events
+      changed_when: false
+
+    - name: Check if Pods are Running
+      shell: kubectl get pods -l app=web-server-nginx -o jsonpath='{.items[*].status.phase}'
+      register: pod_status
+      until: "'Running' in pod_status.stdout"
+      retries: 5
+      delay: 10
+      ignore_errors: true
+
+    - name: Fail if Pods are not Running
+      fail:
+        msg: "One or more pods are not in Running state. Check Kubernetes events for more details."
+      when: "'Running' not in pod_status.stdout"    
 
     - name: Wait for Deployment Rollout
       shell: |
